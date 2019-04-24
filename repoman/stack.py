@@ -25,6 +25,17 @@ from gi.repository import Gtk
 from .settings import Settings
 from .updates import Updates
 from .list import List
+
+FLATPAK_SUPPORT = False
+try:
+    import pyflatpak as Flatpak
+    from .flatpak import FlatpakList
+    FLATPAK_SUPPORT = True
+    print('Flatpak Support installed. Enabling Flatpak')
+except ImportError:
+    print('No flatpak Support installed. Disabling Flatpak')
+    pass
+
 import gettext
 gettext.bindtextdomain('repoman', '/usr/share/repoman/po')
 gettext.textdomain("repoman")
@@ -43,10 +54,14 @@ class Stack(Gtk.Box):
         self.setting = Settings(self)
         self.updates = Updates(self)
         self.list_all = List(self)
+        if FLATPAK_SUPPORT:
+            self.flatpak_list = FlatpakList(self)
 
         self.stack.add_titled(self.setting, "settings", _("Settings"))
         self.stack.add_titled(self.updates, "updates", _("Updates"))
         self.stack.add_titled(self.list_all, "list", _("Extra Sources"))
+        if FLATPAK_SUPPORT:
+            self.stack.add_titled(self.flatpak_list, "flatpak", _("Flatpak Sources"))
 
         self.pack_start(self.stack, True, True, 0)
 

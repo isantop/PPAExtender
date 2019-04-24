@@ -1,0 +1,6 @@
+#!/bin/bash
+
+## This file is only for backwards compatibility. It will be removed.
+
+echo "The file /usr/lib/repoman/repoman.pkexec is deprecated. It will be removed in a future release. Please update your launchers!"
+repoman

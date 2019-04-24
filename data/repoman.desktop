@@ -1,11 +1,13 @@
 [Desktop Entry]
-Name=Repoman
-GenericName=Repoman
+Name=Software Sources
+GenericName=Software Sources
 Comment=Easily manage PPA
 Categories=System;
-Exec=/usr/lib/repoman/repoman.pkexec
-Icon=x-system-software-sources
+Exec=repoman
+Icon=software-properties
 Terminal=false
 Type=Application
 X-GNOME-Gettext-Domain=repoman
 Keywords=Python;
+# Uncomment to hide Repoman from the launcher
+#NoDisplay=true

@@ -19,17 +19,25 @@
     along with Repoman.  If not, see <http://www.gnu.org/licenses/>.
 '''
 
-import sys
-import logging
-import gi
 import apt
+import dbus
+import logging
+import sys
 import threading, queue, time
+
 from softwareproperties.SoftwareProperties import SoftwareProperties
 from aptsources.sourceslist import SourceEntry
+
+import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import GObject, GLib
 
 GLib.threads_init()
+
+bus = dbus.SystemBus()
+remote_object = bus.get_object(
+    'ro.santopiet.repoman', '/PPAObject'
+)
 
 class RemoveThread(threading.Thread):
     cache = apt.Cache()
@@ -51,19 +59,15 @@ class RemoveThread(threading.Thread):
     def run(self):
         self.log.info( "Removing PPA %s" % (self.ppa) )
         try:
-            self.sp.remove_source(self.ppa, remove_source_code=True)
-            self.sp.sourceslist.save()
-            self.cache.open()
-            self.cache.update()
-            self.cache.open(None)
-            self.sp.reload_sourceslist()
+            remote_object.DelPPA(self.ppa)
         except:
             self.exc = sys.exc_info()
             self.throw_error(self.exc[1])
+        self.sp.reload_sourceslist()
         isv_list = self.sp.get_isv_sources()
-        GObject.idle_add(self.parent.parent.stack.list_all.generate_entries, isv_list)
         GObject.idle_add(self.parent.parent.stack.list_all.view.set_sensitive, True)
         GObject.idle_add(self.parent.parent.hbar.spinner.stop)
+        GObject.idle_add(self.parent.parent.stack.list_all.generate_entries, isv_list)
 
     def throw_error(self, message):
         GObject.idle_add(self.parent.parent.stack.list_all.throw_error_dialog,
@@ -71,12 +75,11 @@ class RemoveThread(threading.Thread):
 
 class AddThread(threading.Thread):
     cache = apt.Cache()
-    exc = None
 
-    def __init__(self, parent, url, sp):
+    def __init__(self, parent, ppa, sp):
         threading.Thread.__init__(self)
         self.parent = parent
-        self.url = url
+        self.ppa = ppa
         self.sp = sp
 
         self.log = logging.getLogger("repoman.PPA.AddThread")
@@ -87,18 +90,13 @@ class AddThread(threading.Thread):
         self.log.setLevel(logging.WARNING)
 
     def run(self):
-        self.log.info("Adding PPA %s" % (self.url))
-
+        self.log.info("Adding PPA %s" % (self.ppa))
         try:
-            self.sp.add_source_from_line(self.url)
-            self.sp.sourceslist.save()
-            self.cache.open()
-            self.cache.update()
-            self.cache.open(None)
-            self.sp.reload_sourceslist()
+            remote_object.AddPPA(self.ppa)
         except:
             self.exc = sys.exc_info()
             self.throw_error(self.exc[1])
+        self.sp.reload_sourceslist()
         isv_list = self.sp.get_isv_sources()
         GObject.idle_add(self.parent.parent.parent.stack.list_all.generate_entries, isv_list)
         GObject.idle_add(self.parent.parent.parent.stack.list_all.view.set_sensitive, True)
@@ -126,19 +124,16 @@ class ModifyThread(threading.Thread):
         self.log.setLevel(logging.WARNING)
 
     def run(self):
+        self.log.debug("Old source: %s" % self.old_source)
+        self.log.debug("New source: %s" % self.new_source)
+        
         try:
-            index = self.sp.sourceslist.list.index(self.old_source)
-            file = self.sp.sourceslist.list[index].file
-            self.new_source_entry = SourceEntry(self.new_source,file)
-            self.sp.sourceslist.list[index] = self.new_source_entry
-            self.sp.sourceslist.save()
-            self.cache.open()
-            self.cache.update()
-            self.cache.open(None)
-            self.sp.reload_sourceslist()
+            remote_object.ModifyPPA(self.old_source, self.new_source)
         except:
             self.exc = sys.exc_info()
             self.throw_error(self.exc[1])
+        
+        self.sp.reload_sourceslist()
         isv_list = self.sp.get_isv_sources()
         GObject.idle_add(self.parent.parent.parent.stack.list_all.generate_entries, isv_list)
         GObject.idle_add(self.parent.parent.parent.stack.list_all.view.set_sensitive, True)
@@ -157,7 +152,7 @@ class PPA:
     cache = apt.Cache()
     sp = SoftwareProperties()
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         self.parent = parent
 
         self.log = logging.getLogger("repoman.Updates")
@@ -204,26 +199,32 @@ class PPA:
 
     # Enable/Disable a component
     def set_comp_enabled(self, comp, enabled):
-        if enabled == True:
-            self.sp.enable_component(comp)
-        else:
-            self.sp.disable_component(comp)
+        self.log.info('Component: %s\nEnabled: %s' % (comp, enabled))
+        try:
+            remote_object.SetCompEnabled(comp, enabled)
+        except:
+            self.exc = sys.exc_info()
+            self.throw_error(self.exc[1])
         return 0
 
     # Enable/Disable a child repo
     def set_child_enabled(self, child, enabled):
-        if enabled == True:
-            self.sp.enable_child_source(child)
-        else:
-            self.sp.disable_child_source(child)
+        self.log.info('Child: %s\nEnabled: %s' % (child, enabled))
+        try:
+            remote_object.SetChildEnabled(child.name, enabled)
+        except:
+            self.exc = sys.exc_info()
+            self.throw_error(self.exc[1])
         return 0
 
     # Enable/Disable source code
     def set_source_code_enabled(self, enabled):
-        if enabled == True:
-            self.sp.enable_source_code_sources()
-        elif enabled == False:
-            self.sp.disable_source_code_sources()
+        self.log.info('Source enabled: %s' % enabled)
+        try:
+            remote_object.SetSourceCodeEnabled(enabled)
+        except:
+            self.exc = sys.exc_info()
+            self.throw_error(self.exc[1])
         return 0
 
     def get_line(self, isdisabled, rtype, archs, uri, version, component):
@@ -246,15 +247,15 @@ class PPA:
 
     # Turn an added deb line into an apt source
     def deb_line_to_source(self, line):
-        self.log.debug(line)
+        self.log.info(line)
         source = self.sp._find_source_from_string(line)
         return source
 
     # Modify an existing PPA
     def modify_ppa(self, old_source, disabled, rtype, archs, uri, version, component):
-        self.log.debug("Old source: %s" % old_source)
+        self.log.info("Old source: %s" % old_source)
         line = self.get_line(disabled, rtype, archs, uri, version, component)
-        self.log.debug("New source: %s" % line)
+        self.log.info("New source: %s" % line)
         self.parent.parent.parent.hbar.spinner.start()
         self.parent.parent.parent.stack.list_all.view.set_sensitive(False)
         ModifyThread(self.parent, old_source, line, self.sp).start()
@@ -262,6 +263,8 @@ class PPA:
 
     # Starts a new thread to add a repository
     def add(self, url):
+        self.log.info("Adding source: %s" % url)
+        print(type(url))
         self.parent.parent.parent.hbar.spinner.start()
         self.parent.parent.parent.stack.list_all.view.set_sensitive(False)
         t = AddThread(self.parent, url, self.sp)
@@ -269,6 +272,7 @@ class PPA:
 
     # Starts a new thread to remove a repository
     def remove(self, ppa):
+        self.log.info("Removing source: %s" % ppa)
         self.parent.parent.hbar.spinner.start()
         self.parent.parent.stack.list_all.view.set_sensitive(False)
         RemoveThread(self.parent, self.sources_path, ppa, self.sp).start()
@@ -309,4 +313,8 @@ class PPA:
             return "your OS"
 
         return "your OS"
+
+    def throw_error(self, message):
+        GObject.idle_add(self.parent.parent.parent.stack.list_all.throw_error_dialog,
+                         message, "error")
 

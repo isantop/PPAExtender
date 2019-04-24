@@ -157,15 +157,25 @@ class List(Gtk.Box):
             for arch in source.architectures:
                 new_archs = "%s%s," % (new_archs, arch)
             new_archs = new_archs[:-1] + "]"
-            self.ppa.modify_ppa(source,
+            old_source = self.ppa.get_line(
+                source.disabled,
+                source.type,
+                source.architectures,
+                source.uri,
+                source.dist,
+                source.comps
+            )
+            self.ppa.modify_ppa(old_source,
                                 new_disabled,
                                 new_rtype,
                                 new_archs,
                                 new_uri,
                                 new_version,
                                 new_component)
+            self.generate_entries(self.ppa.get_isv())
         else:
             dialog.destroy()
+            self.generate_entries(self.ppa.get_isv())
 
     def on_add_button_clicked(self, widget):
         #self.ppa.remove(self.ppa_name)

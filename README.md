@@ -10,10 +10,17 @@ as well as add, remove, and modify third-party repositories on the system.
 Repoman is based on [PPAExtender](https://github.com/mirkobrombin/PPAExtender)
 
 ## Requirements
-- python3
+- python3 (>= 3.6)
 - libgtk-3-dev
 - libgranite-dev
 - software-properties-common
+- gir1.2-gtk-3.0
+- python-requests
+
+### Flatpak Support
+Repoman has support for managing flatpak remotes. In order to enable this 
+support, you must have [PyFlatPak](https://github.com/isantop/pyflatpak)
+installed and available.
 
 ## Installation
 **Be careful**, modifying PPAs can damage your system.

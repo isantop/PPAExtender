@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1.0/policyconfig.dtd">
+ <!-- To the extent possible under law, David D. Lowe has waived all 
+ copyright and related or neighboring rights to this file.
+ License: http://creativecommons.org/publicdomain/zero/1.0/ -->
+<policyconfig>
+
+  <vendor>Repoman</vendor>
+  <vendor_url>https://github.com/isantop/repoman</vendor_url>
+  <icon_name>x-system-software-sources</icon_name>
+
+  <action id="ro.santopiet.repoman.addppa">
+    <description>Adds a Debian Repository to the system software sources.</description>
+    <message>System policy prevents you from adding this software source</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+  
+  <action id="ro.santopiet.repoman.delppa">
+    <description>Removes a Debian Repository from the system software sources.</description>
+    <message>System policy prevents you from removing this software source</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+
+  <action id="ro.santopiet.repoman.modppa">
+    <description>Modifies a Debian Repository in the system software sources.</description>
+    <message>System policy prevents you from modifying this software source</message>
+    <defaults>
+      <allow_any>auth_admin_keep</allow_any>
+      <allow_inactive>auth_admin_keep</allow_inactive>
+      <allow_active>auth_admin_keep</allow_active>
+    </defaults>
+  </action>
+</policyconfig> 

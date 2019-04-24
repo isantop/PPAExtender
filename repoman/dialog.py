@@ -25,6 +25,16 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 from .ppa import PPA
 import gettext
+
+FLATPAK_SUPPORT = False
+try:
+    import pyflatpak as Flatpak
+    FLATPAK_SUPPORT = True
+except ImportError:
+    FLATPAK_SUPPORT = False
+    pass
+
+
 gettext.bindtextdomain('repoman', '/usr/share/repoman/po')
 gettext.textdomain("repoman")
 _ = gettext.gettext
@@ -120,6 +130,63 @@ class DeleteDialog(Gtk.Dialog):
 
         self.show_all()
 
+class FpDeleteDialog(Gtk.Dialog):
+
+    ppa_name = False
+
+    def __init__(self, parent):
+
+        settings = Gtk.Settings.get_default()
+
+        header = settings.props.gtk_dialogs_use_header
+
+        Gtk.Dialog.__init__(self, _("Remove Source"), parent, 0,
+                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                             Gtk.STOCK_REMOVE, Gtk.ResponseType.OK),
+                             modal=1, use_header_bar=header)
+
+        self.log = logging.getLogger("repoman.DeleteDialog")
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.log.setLevel(logging.WARNING)
+
+        content_area = self.get_content_area()
+
+        content_grid = Gtk.Grid()
+        content_grid.set_margin_top(24)
+        content_grid.set_margin_left(24)
+        content_grid.set_margin_right(24)
+        content_grid.set_margin_bottom(24)
+        content_grid.set_column_spacing(12)
+        content_grid.set_row_spacing(6)
+        content_area.add(content_grid)
+
+        delete_image = Gtk.Image.new_from_icon_name("dialog-warning-symbolic",
+                                                Gtk.IconSize.DIALOG)
+        delete_image.props.valign = Gtk.Align.START
+        content_grid.attach(delete_image, 0, 0, 1, 2)
+
+        delete_label = Gtk.Label(_("Are you sure you want to remove this source?"))
+        Gtk.StyleContext.add_class(delete_label.get_style_context(), "h2")
+        content_grid.attach(delete_label, 1, 0, 1, 1)
+
+        delete_explain = Gtk.Label(_(
+            "If you remove this source, you will need to add it again to "
+            "continue using it. All software you've installed from this source "
+            "will be removed."
+        ))
+        delete_explain.props.wrap = True
+        delete_explain.set_max_width_chars(50)
+        delete_explain.set_xalign(0)
+        content_grid.attach(delete_explain, 1, 1, 1, 1)
+
+        Gtk.StyleContext.add_class(self.get_widget_for_response(Gtk.ResponseType.OK).get_style_context(),
+                                   "destructive-action")
+
+        self.show_all()
+
 class AddDialog(Gtk.Dialog):
 
     ppa_name = False
@@ -186,6 +253,74 @@ class AddDialog(Gtk.Dialog):
             self.add_button.set_sensitive(entry_valid)
         except TypeError:
             pass
+
+class FpAddDialog(Gtk.Dialog):
+
+    ppa_name = False
+
+    def __init__(self, parent):
+
+        settings = Gtk.Settings.get_default()
+        header = settings.props.gtk_dialogs_use_header
+
+        Gtk.Dialog.__init__(self, _("Add Source"), parent, 0,
+                            (Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL,
+                             Gtk.STOCK_ADD, Gtk.ResponseType.OK),
+                             modal=1, use_header_bar=header)
+
+        self.log = logging.getLogger("repoman.FpAddDialog")
+        handler = logging.StreamHandler()
+        formatter = logging.Formatter('%(asctime)s %(name)-12s %(levelname)-8s %(message)s')
+        handler.setFormatter(formatter)
+        self.log.addHandler(handler)
+        self.log.setLevel(logging.WARNING)
+
+        content_area = self.get_content_area()
+
+        content_grid = Gtk.Grid()
+        content_grid.set_margin_top(24)
+        content_grid.set_margin_left(12)
+        content_grid.set_margin_right(12)
+        content_grid.set_margin_bottom(12)
+        content_grid.set_row_spacing(6)
+        content_grid.set_halign(Gtk.Align.CENTER)
+        content_grid.set_hexpand(True)
+        content_area.add(content_grid)
+
+        add_title = Gtk.Label(_("Add Flatpak Source"))
+        Gtk.StyleContext.add_class(add_title.get_style_context(), "h2")
+        content_grid.attach(add_title, 0, 0, 1, 1)
+
+        self.fp_name_entry = Gtk.Entry()
+        self.fp_name_entry.set_placeholder_text(_('Source Name e.g. "flathub"'))
+        self.fp_name_entry.set_width_chars(50)
+        self.fp_name_entry.set_margin_top(12)
+        content_grid.attach(self.fp_name_entry, 0, 2, 1, 1)
+
+        self.fp_entry = Gtk.Entry()
+        self.fp_entry.set_placeholder_text(_("Source URL"))
+        self.fp_entry.connect(_("changed"), self.on_entry_changed)
+        self.fp_entry.set_width_chars(50)
+        self.fp_entry.set_margin_top(12)
+        content_grid.attach(self.fp_entry, 0, 3, 1, 1)
+
+        self.add_button = self.get_widget_for_response(Gtk.ResponseType.OK)
+        self.add_button.set_sensitive(False)
+
+        Gtk.StyleContext.add_class(self.add_button.get_style_context(),
+                                   "suggested-action")
+        self.add_button.grab_default()
+
+        self.show_all()
+    
+    def on_entry_changed(self, widget):
+        entry_text = widget.get_text()
+        entry_valid = entry_text.endswith(".flatpakrepo")
+        try:
+            self.add_button.set_sensitive(entry_valid)
+        except TypeError:
+            pass
+
 
 
 class EditDialog(Gtk.Dialog):
@@ -328,5 +463,7 @@ class EditDialog(Gtk.Dialog):
             self.destroy()
         else:
             dialog.destroy()
+
+
 
 

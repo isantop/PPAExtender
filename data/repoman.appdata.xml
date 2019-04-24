@@ -2,7 +2,6 @@
 <!-- Copyright 2017 Allen B -->
 <component type="desktop">
   <id>xyz.isantop.repoman</id>
-  <metadata_license>CC0</metadata_license>
   <project_license>GPL-3.0+</project_license>
   <name>Repoman</name>
   <summary>Easily manage PPA</summary>

@@ -1,14 +1,14 @@
 Source: repoman
 Section: x11
-Priority: extra
+Priority: optional
 Maintainer: Ian Santopietro <ian@system76.com>
 Build-Depends: debhelper (>= 10),
                dh-python,
                python3-all,
                software-properties-common,
                gir1.2-gtk-3.0,
-Standards-Version: 3.9.3
-X-Python3-Version: >= 3.4
+Standards-Version: 4.3.0
+X-Python3-Version: >= 3.6
 
 Package: repoman
 Architecture: all
@@ -16,6 +16,12 @@ Depends: ${python3:Depends}, ${misc:Depends},
          software-properties-common,
          gir1.2-gtk-3.0,
          python-requests,
-Description: Repoman
+Recommends: flatpak,
+            python3-pyflatpak
+Description: Easily manage software sources!
  Hey man, let's go do crimes. Yeah, let's install software and not pay.
-
+ .
+ Repoman is a repository manager for Debian and Flatpak systems. It allows you 
+ to easily add, remove, or modify PPAs and third-party software sources and
+ Flatpak remotes. It also lets you enable or disable distribution components
+ (e.g. source code, -proposed, etc.).

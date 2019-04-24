@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=ro.santopiet.repoman
+Exec=/usr/bin/python3 /usr/lib/repoman/add-del-ppa.py
+User=root
